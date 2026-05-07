@@ -46,7 +46,7 @@ description: Use this skill when writing code that calls the Gemini API for text
 
 ## Important Additional Notes
 
-- Always read the **documentation** for capabiltiy or feature that matches the user's task.
+- Always use your web_fetch tool to read the remote documentation that matches the user's task.
 - Interactions are **stored by default** (`store=true`). Paid tier retains for 55 days, free tier for 1 day.
 - Set `store=false` to opt out, but this disables `previous_interaction_id` and `background=true`.
 - `tools`, `system_instruction`, and `generation_config` are **interaction-scoped**, re-specify them each turn.
@@ -207,7 +207,7 @@ for await (const event of stream) {
 
 ## Documentation Pages
 
-Always read the detailed documentation on a specific feature (full parameters, advanced options, edge cases), fetch the corresponding page below, that matches the user's task.
+Always use your `web_fetch` tool to read the remote documentation the detailed documentation on a specific feature (full parameters, advanced options, edge cases), fetch the corresponding page below, that matches the user's task.
 
 **Core Documentation:**
 - [Interactions API Overview](https://ai.google.dev/gemini-api/docs/interactions.md.txt)

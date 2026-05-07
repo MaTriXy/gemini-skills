@@ -38,7 +38,7 @@ The core changes when migrating from `generateContent` to the Interactions API:
 | **Structured output** | `config.response_format` inside `GenerateContentConfig` | Top-level `response_format` array |
 | **Function calling** | `candidates[0].content.parts[0].function_call` | `function_call` step in `interaction.steps` |
 | **Search grounding** | `groundingMetadata` on candidates | `google_search_call`/`google_search_result` steps + inline `annotations` |
-| **REST endpoint** | `POST /v1beta/models/{model}:generateContent` | `POST /v1beta2/interactions` |
+| **REST endpoint** | `POST /v1beta/models/{model}:generateContent` | `POST /v1beta/interactions` |
 | **SDK package** | `google-genai` ≥ 1.x or legacy `google-generativeai` | `google-genai` ≥ 2.0.0 |
 
 For full before/after code examples, fetch the [Migration Guide](https://ai.google.dev/gemini-api/docs/migrate-to-interactions.md.txt) or read the Interactions API documentation pages for each feature.
