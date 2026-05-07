@@ -38,6 +38,7 @@ The core changes when migrating from `generateContent` to the Interactions API:
 | **Structured output** | `config.response_format` inside `GenerateContentConfig` | Top-level `response_format` array |
 | **Function calling** | `candidates[0].content.parts[0].function_call` | `function_call` step in `interaction.steps` |
 | **Search grounding** | `groundingMetadata` on candidates | `google_search_call`/`google_search_result` steps + inline `annotations` |
+| **Config/types** | `types.GenerateContentConfig(...)`, `types.Tool(...)`, `types.Content(...)`, `types.Part.*` | Not used. Interactions API uses plain Python dicts and direct params. Check the feature docs for exact format. |
 | **REST endpoint** | `POST /v1beta/models/{model}:generateContent` | `POST /v1beta/interactions` |
 | **SDK package** | `google-genai` ≥ 1.x or legacy `google-generativeai` | `google-genai` ≥ 2.0.0 |
 
@@ -73,7 +74,8 @@ Every item is tagged: **`[BLOCKS]`** items cause errors or broken behavior if mi
 - [ ] Replaced `client.models.generate_content()` → `client.interactions.create()`
 - [ ] Replaced `response.text` → `interaction.steps[-1].content[0].text`
 - [ ] Replaced `response.candidates[0].content.parts` → iterate `interaction.steps`
-- [ ] Replace d`client.chats.create()` / manual history → `previous_interaction_id`
+- [ ] Replaced `client.chats.create()` / manual history → `previous_interaction_id`
+- [ ] Removed all `types.*` wrappers (`GenerateContentConfig`, `Tool`, `Content`, `Part`) — Interactions API uses plain dicts. Check feature docs for exact format.
 - [ ] Moved `response_format` from `GenerateContentConfig` to top-level parameter
 - [ ] Replaced `generate_content_stream()` → `stream=True` + step-based event handling
 - [ ] Updated function calling: candidates-based → step-based tool lifecycle
