@@ -46,6 +46,7 @@ description: Use this skill when writing code that calls the Gemini API for text
 
 ## Important Additional Notes
 
+- Always read the **documentation** for capabiltiy or feature that matches the user's task.
 - Interactions are **stored by default** (`store=true`). Paid tier retains for 55 days, free tier for 1 day.
 - Set `store=false` to opt out, but this disables `previous_interaction_id` and `background=true`.
 - `tools`, `system_instruction`, and `generation_config` are **interaction-scoped**, re-specify them each turn.
