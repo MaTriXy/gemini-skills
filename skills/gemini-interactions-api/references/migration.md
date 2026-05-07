@@ -11,11 +11,9 @@ For detailed before/after code examples across all feature areas (text generatio
 Even imperative requests like "migrate my code", "upgrade to gemini 3", or "switch to the Interactions API" leave the scope ambiguous. Ask:
 
 > Before I start editing, can you confirm the scope?
-> 1. Every file in the working directory
-> 2. A specific subdirectory (e.g. `src/`, `api/`)
-> 3. A specific file or list of files
->
-> Which one?
+> 1. Entire project
+> 2. Specific subdirectory (e.g. `src/`, `api/`)
+> 3. Specific file or list of files
 
 **Sizing the scope (large repos).** Before asking, get a per-directory count:
 
@@ -71,29 +69,26 @@ Every item is tagged: **`[BLOCKS]`** items cause errors or broken behavior if mi
 
 ### API Migration (generateContent → Interactions)
 
-- [ ] Update SDK: `google-genai` ≥ 2.0.0 (Python) / `@google/genai` ≥ 2.0.0 (JS)
-- [ ] Replace `client.models.generate_content()` → `client.interactions.create()`
-- [ ] Replace `response.text` → `interaction.steps[-1].content[0].text`
-- [ ] Replace `response.candidates[0].content.parts` → iterate `interaction.steps`
-- [ ] Replace `client.chats.create()` / manual history → `previous_interaction_id`
-- [ ] Move `response_format` from `GenerateContentConfig` to top-level parameter
-- [ ] Replace `generate_content_stream()` → `stream=True` + step-based event handling
-- [ ] Update function calling: candidates-based → step-based tool lifecycle
-- [ ] REST: Change endpoint to `/v1beta/interactions`
+- [ ] Updated SDK: `google-genai` ≥ 2.0.0 (Python) / `@google/genai` ≥ 2.0.0 (JS)
+- [ ] Replaced `client.models.generate_content()` → `client.interactions.create()`
+- [ ] Replaced `response.text` → `interaction.steps[-1].content[0].text`
+- [ ] Replaced `response.candidates[0].content.parts` → iterate `interaction.steps`
+- [ ] Replace d`client.chats.create()` / manual history → `previous_interaction_id`
+- [ ] Moved `response_format` from `GenerateContentConfig` to top-level parameter
+- [ ] Replaced `generate_content_stream()` → `stream=True` + step-based event handling
+- [ ] Updated function calling: candidates-based → step-based tool lifecycle
+- [ ] REST: Changed endpoint to `/v1beta/interactions`
 - [ ] REST: Add `Api-Revision: 2026-05-20` header (SDK ≥ 2.0.0 sets it automatically)
+- [ ] Replaced `google-generativeai` (Python) → `google-genai` ≥ 2.0.0
+- [ ] Replaced `@google/generative-ai` (JS) → `@google/genai` ≥ 2.0.0
+- [ ] Updated all import statements to match new package names
 
 ### Model String Updates
 
-- [ ] Replace `gemini-2.0-*` model strings with current equivalents
-- [ ] Replace `gemini-1.5-*` model strings with current equivalents
+- [ ] Replaced `gemini-2.0-*` model strings with current equivalents
+- [ ] Replaced `gemini-1.5-*` model strings with current equivalents
 - [ ] Consider upgrading `gemini-2.5-flash` → `gemini-3-flash-preview`
 - [ ] Consider upgrading `gemini-2.5-pro` → `gemini-3.1-pro-preview`
-
-### Blocked by Legacy SDK Migration
-
-- [ ] Replace `google-generativeai` (Python) → `google-genai` ≥ 2.0.0
-- [ ] Replace `@google/generative-ai` (JS) → `@google/genai` ≥ 2.0.0
-- [ ] Update all import statements to match new package names
 
 ---
 
