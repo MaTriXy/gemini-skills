@@ -27,34 +27,34 @@ description: Use this skill when writing code that calls the Gemini API for text
 > Models like `gemini-2.0-*`, `gemini-1.5-*` are **legacy and deprecated**. Never use them.
 > **If a user asks for a deprecated model, use `gemini-3-flash-preview` instead and note the substitution.**
 
-### Current Agents (Use These)
+### Current Agents
 
-- `deep-research-preview-04-2026`: Deep Research agent — optimized for speed and efficiency, ideal for interactive use
-- `deep-research-max-preview-04-2026`: Deep Research Max agent — maximum comprehensiveness and exhaustiveness, best for automated reporting
+- `deep-research-preview-04-2026`: Deep Research — fast, interactive
+- `deep-research-max-preview-04-2026`: Deep Research Max — maximum exhaustiveness
 
-### Current SDKs (Use These)
+### Current SDKs
 
-- **Python**: `google-genai` >= `1.55.0` → `pip install -U google-genai`
-- **JavaScript/TypeScript**: `@google/genai` >= `1.33.0` → `npm install @google/genai`
+- **Python**: `google-genai` >= `2.0.0` → `pip install -U google-genai`
+- **JavaScript/TypeScript**: `@google/genai` >= `2.0.0` → `npm install @google/genai`
 
-> [!CAUTION]
+> [!NOTE]
+> SDK versions ≥ 2.0.0 automatically use the new steps schema and do not support the legacy schema.
 > Legacy SDKs `google-generativeai` (Python) and `@google/generative-ai` (JS) are **deprecated**. Never use them.
 
-## Overview
+> [!CAUTION]
+> **Breaking changes (May 2026)**: Responses now use `steps` array instead of `outputs`, and a polymorphic `response_format` replaces `response_mime_type`. Legacy schema removed **June 8, 2026**. All code below uses the **new schema**.
 
-The Interactions API is a unified interface for interacting with Gemini models and agents. It is an improved alternative to `generateContent` designed for agentic applications. Key capabilities include:
-- **Server-side state:** Offload conversation history to the server via `previous_interaction_id`
-- **Background execution:** Run long-running tasks (like Deep Research) asynchronously
-- **Streaming:** Receive incremental responses via Server-Sent Events
-- **Tool orchestration:** Function calling, Google Search, code execution, URL context, file search, remote MCP
-- **Agents:** Access built-in agents like Gemini Deep Research
-- **Thinking:** Configurable reasoning depth with thought summaries
+## Important Additional Notes
+
+- Interactions are **stored by default** (`store=true`). Paid tier retains for 55 days, free tier for 1 day.
+- Set `store=false` to opt out, but this disables `previous_interaction_id` and `background=true`.
+- `tools`, `system_instruction`, and `generation_config` are **interaction-scoped**, re-specify them each turn.
+- **Migrating from `generateContent`**: Read `references/migration.md` for the scoping, checklist, and before/after code examples. Always confirm scope with the user before editing.
+- **Model upgrades**: Drop-in, swap the model string. Deprecated models (`gemini-2.0-*`, `gemini-1.5-*`) must be replaced, see `references/migration.md`.
 
 ## Quick Start
 
-### Interact with a Model
-
-#### Python
+### Python
 ```python
 from google import genai
 
@@ -64,10 +64,10 @@ interaction = client.interactions.create(
     model="gemini-3-flash-preview",
     input="Tell me a short joke about programming."
 )
-print(interaction.outputs[-1].text)
+print(interaction.steps[-1].content[0].text)
 ```
 
-#### JavaScript/TypeScript
+### JavaScript/TypeScript
 ```typescript
 import { GoogleGenAI } from "@google/genai";
 
@@ -77,76 +77,57 @@ const interaction = await client.interactions.create({
     model: "gemini-3-flash-preview",
     input: "Tell me a short joke about programming.",
 });
-console.log(interaction.outputs[interaction.outputs.length - 1].text);
+console.log(interaction.steps.at(-1).content[0].text);
 ```
 
-### Stateful Conversation
+## Stateful Conversation
 
-#### Python
+### Python
 ```python
-from google import genai
-
-client = genai.Client()
-
-# First turn
 interaction1 = client.interactions.create(
     model="gemini-3-flash-preview",
     input="Hi, my name is Phil."
 )
-
 # Second turn — server remembers context
 interaction2 = client.interactions.create(
     model="gemini-3-flash-preview",
     input="What is my name?",
     previous_interaction_id=interaction1.id
 )
-print(interaction2.outputs[-1].text)
+print(interaction2.steps[-1].content[0].text)
 ```
 
-#### JavaScript/TypeScript
+### JavaScript/TypeScript
 ```typescript
-import { GoogleGenAI } from "@google/genai";
-
-const client = new GoogleGenAI({});
-
-// First turn
 const interaction1 = await client.interactions.create({
     model: "gemini-3-flash-preview",
     input: "Hi, my name is Phil.",
 });
-
-// Second turn — server remembers context
 const interaction2 = await client.interactions.create({
     model: "gemini-3-flash-preview",
     input: "What is my name?",
     previous_interaction_id: interaction1.id,
 });
-console.log(interaction2.outputs[interaction2.outputs.length - 1].text);
+console.log(interaction2.steps.at(-1).content[0].text);
 ```
 
-### Deep Research Agent
+## Deep Research Agent
 
-Use `deep-research-preview-04-2026` for fast, interactive research or `deep-research-max-preview-04-2026` for maximum exhaustiveness.
+Use `deep-research-preview-04-2026` for fast research or `deep-research-max-preview-04-2026` for maximum exhaustiveness. Agents require `background=True`.
 
-#### Python
+### Python
 ```python
 import time
-from google import genai
 
-client = genai.Client()
-
-# Start background research
 interaction = client.interactions.create(
     agent="deep-research-preview-04-2026",
     input="Research the history of Google TPUs.",
     background=True
 )
-
-# Poll for results
 while True:
     interaction = client.interactions.get(interaction.id)
     if interaction.status == "completed":
-        print(interaction.outputs[-1].text)
+        print(interaction.steps[-1].content[0].text)
         break
     elif interaction.status == "failed":
         print(f"Failed: {interaction.error}")
@@ -154,7 +135,7 @@ while True:
     time.sleep(10)
 ```
 
-#### JavaScript/TypeScript
+### JavaScript/TypeScript
 ```typescript
 import { GoogleGenAI } from "@google/genai";
 
@@ -171,7 +152,7 @@ const initialInteraction = await client.interactions.create({
 while (true) {
     const interaction = await client.interactions.get(initialInteraction.id);
     if (interaction.status === "completed") {
-        console.log(interaction.outputs[interaction.outputs.length - 1].text);
+        console.log(interaction.steps.at(-1).content[0].text);
         break;
     } else if (["failed", "cancelled"].includes(interaction.status)) {
         console.log(`Failed: ${interaction.status}`);
@@ -181,116 +162,143 @@ while (true) {
 }
 ```
 
-**Advanced Deep Research Features**
+Advanced features: collaborative planning, native visualization, MCP integration, file search, multimodal inputs. See [Deep Research docs](https://ai.google.dev/gemini-api/docs/interactions/deep-research.md.txt).
 
-Deep Research supports additional capabilities beyond basic research. See the [Deep Research documentation](https://ai.google.dev/gemini-api/docs/deep-research) for full details and code examples:
+## Streaming
 
-- **Collaborative planning** Review and refine the agent's research plan before execution (`collaborative_planning: true` in `agent_config`)
-- **Native visualization** Generate charts and infographics inline with research reports (`visualization: "auto"` in `agent_config`)
-- **MCP integration** Connect to private data sources and specialized tools via remote MCP servers
-- **File search** Search over uploaded files and connected file stores
-- **Multimodal inputs** Ground research with PDFs, CSVs, images, audio, and video
-
-### Streaming
-
-#### Python
+### Python
 ```python
-from google import genai
-
-client = genai.Client()
-
-stream = client.interactions.create(
+for event in client.interactions.create(
     model="gemini-3-flash-preview",
     input="Explain quantum entanglement in simple terms.",
-    stream=True
-)
-
-for chunk in stream:
-    if chunk.event_type == "content.delta":
-        if chunk.delta.type == "text":
-            print(chunk.delta.text, end="", flush=True)
-    elif chunk.event_type == "interaction.complete":
-        print(f"\n\nTotal Tokens: {chunk.interaction.usage.total_tokens}")
+    stream=True,
+):
+    if event.type == "step.delta":
+        if event.delta.type == "text":
+            print(event.delta.text, end="", flush=True)
+        elif event.delta.type == "thought":
+            print(event.delta.text, end="", flush=True)
+    elif event.type == "interaction.complete":
+        print(f"\n\nTotal Tokens: {event.interaction.usage.total_tokens}")
 ```
 
-#### JavaScript/TypeScript
+### JavaScript/TypeScript
 ```typescript
-import { GoogleGenAI } from "@google/genai";
-
-const client = new GoogleGenAI({});
-
 const stream = await client.interactions.create({
     model: "gemini-3-flash-preview",
     input: "Explain quantum entanglement in simple terms.",
     stream: true,
 });
-
-for await (const chunk of stream) {
-    if (chunk.event_type === "content.delta") {
-        if (chunk.delta.type === "text" && "text" in chunk.delta) {
-            process.stdout.write(chunk.delta.text);
+for await (const event of stream) {
+    if (event.type === 'step.delta') {
+        if (event.delta.type === 'text') {
+            process.stdout.write(event.delta.text);
+        } else if (event.delta.type === 'thought') {
+            process.stdout.write(event.delta.text);
         }
-    } else if (chunk.event_type === "interaction.complete") {
-        console.log(`\n\nTotal Tokens: ${chunk.interaction.usage.total_tokens}`);
+    } else if (event.type === 'interaction.complete') {
+        console.log(`\n\nTotal Tokens: ${event.interaction.usage.total_tokens}`);
     }
 }
 ```
 
 
+
+## Documentation Pages
+
+Always read the detailed documentation on a specific feature (full parameters, advanced options, edge cases), fetch the corresponding page below, that matches the user's task.
+
+**Core Documentation:**
+- [Interactions API Overview](https://ai.google.dev/gemini-api/docs/interactions.md.txt)
+- [Quickstart](https://ai.google.dev/gemini-api/docs/interactions/quickstart.md.txt)
+- [Text Generation](https://ai.google.dev/gemini-api/docs/interactions/text-generation.md.txt)
+- [Tokens](https://ai.google.dev/gemini-api/docs/interactions/tokens.md.txt)
+- [API Keys](https://ai.google.dev/gemini-api/docs/interactions/api-key.md.txt)
+
+**Tools & Function Calling:**
+- [Function Calling](https://ai.google.dev/gemini-api/docs/interactions/function-calling.md.txt)
+- [Google Search](https://ai.google.dev/gemini-api/docs/interactions/google-search.md.txt)
+- [Code Execution](https://ai.google.dev/gemini-api/docs/interactions/code-execution.md.txt)
+- [URL Context](https://ai.google.dev/gemini-api/docs/interactions/url-context.md.txt)
+- [File Search](https://ai.google.dev/gemini-api/docs/interactions/file-search.md.txt)
+- [Tool Combination](https://ai.google.dev/gemini-api/docs/interactions/tool-combination.md.txt)
+- [Computer Use](https://ai.google.dev/gemini-api/docs/interactions/computer-use.md.txt)
+- [Maps Grounding](https://ai.google.dev/gemini-api/docs/interactions/maps-grounding.md.txt)
+
+**Generation & Output:**
+- [Structured Output](https://ai.google.dev/gemini-api/docs/interactions/structured-output.md.txt)
+- [Thinking](https://ai.google.dev/gemini-api/docs/interactions/thinking.md.txt)
+- [Thought Signatures](https://ai.google.dev/gemini-api/docs/interactions/thought-signatures.md.txt)
+- [Image Generation](https://ai.google.dev/gemini-api/docs/interactions/image-generation.md.txt)
+- [Image Understanding](https://ai.google.dev/gemini-api/docs/interactions/image-understanding.md.txt)
+- [Speech Generation](https://ai.google.dev/gemini-api/docs/interactions/speech-generation.md.txt)
+- [Music Generation](https://ai.google.dev/gemini-api/docs/interactions/music-generation.md.txt)
+
+**Multimodal Understanding:**
+- [Audio](https://ai.google.dev/gemini-api/docs/interactions/audio.md.txt)
+- [Video Understanding](https://ai.google.dev/gemini-api/docs/interactions/video-understanding.md.txt)
+- [Document Processing](https://ai.google.dev/gemini-api/docs/interactions/document-processing.md.txt)
+
+**Files & Context:**
+- [Files](https://ai.google.dev/gemini-api/docs/interactions/files.md.txt)
+- [File Input Methods](https://ai.google.dev/gemini-api/docs/interactions/file-input-methods.md.txt)
+- [Caching](https://ai.google.dev/gemini-api/docs/interactions/caching.md.txt)
+- [Media Resolution](https://ai.google.dev/gemini-api/docs/interactions/media-resolution.md.txt)
+
+**Advanced Features:**
+- [Deep Research](https://ai.google.dev/gemini-api/docs/interactions/deep-research.md.txt)
+- [Gemini 3](https://ai.google.dev/gemini-api/docs/interactions/gemini-3.md.txt)
+- [Flex Inference](https://ai.google.dev/gemini-api/docs/interactions/flex-inference.md.txt)
+- [Priority Inference](https://ai.google.dev/gemini-api/docs/interactions/priority-inference.md.txt)
+
+**API Reference:**
+- [API Reference](https://ai.google.dev/static/api/interactions.md.txt)
+- [OpenAPI Spec](https://ai.google.dev/static/api/interactions.openapi.json)
+- [May 2026 Breaking Changes Migration Guide](https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026.md.txt)
+
 ## Data Model
 
-An `Interaction` response contains `outputs` — an array of typed content blocks. Each block has a `type` field:
+An `Interaction` response contains `steps`, an array of typed step objects representing a structured timeline of the interaction turn.
 
-- `text` — Generated text (`text` field)
-- `thought` — Model reasoning (`signature` required, optional `summary`)
-- `function_call` — Tool call request (`id`, `name`, `arguments`)
-- `function_result` — Tool result you send back (`call_id`, `name`, `result`)
-- `google_search_call` / `google_search_result` — Google Search tool
-- `code_execution_call` / `code_execution_result` — Code execution tool
-- `url_context_call` / `url_context_result` — URL context tool
-- `mcp_server_tool_call` / `mcp_server_tool_result` — Remote MCP tool
-- `file_search_call` / `file_search_result` — File search tool
-- `image` — Generated or input image (`data`, `mime_type`, or `uri`)
+### Step Types
+
+**User steps:**
+- `user_input`: User input (text, audio, multimodal). Contains `content` array.
+
+**Model/server steps:**
+- `model_output`: Final model generation. Contains `content` array with `text`, `image`, `audio`, etc.
+- `thought`: Model reasoning/Chain of Thought. Has `signature` field (required) and optional `summary`.
+- `function_call`: Tool call request (`id`, `name`, `arguments`).
+- `function_result`: Tool result you send back (`call_id`, `name`, `result`).
+- `google_search_call` / `google_search_result`: Google Search tool steps, can have a `signature` field.
+- `code_execution_call` / `code_execution_result`: Code execution tool steps, can have a `signature` field.
+- `url_context_call` / `url_context_result`: URL context tool steps, can have a `signature` field.
+- `mcp_server_tool_call` / `mcp_server_tool_result`: Remote MCP tool steps.
+- `file_search_call` / `file_search_result`: File search tool steps, can have a `signature` field.
+
+### Content types (inside `content` array on `model_output` and `user_input` steps)
+- `text`: Text content (`text` field)
+- `image` / `audio` / `document` / `video`: Content with `data`, `mime_type`, or `uri`
+
+### Streaming Event Types
+
+| Event | Description |
+|---|---|
+| `interaction.created` | Interaction created; includes metadata. |
+| `interaction.status_update` | Interaction-level status change. |
+| `step.start` | A new step begins. Contains step `type` and initial metadata. |
+| `step.delta` | Incremental data for the current step. Contains a typed `delta` object. |
+| `step.stop` | The step is complete. Contains `index`. |
+| `interaction.complete` | Interaction finished. Contains final `usage`. |
+
+### Delta Types
+
+| Delta Type | Parent Step | Description |
+|---|---|---|
+| `text` | `model_output` | Incremental text token. |
+| `audio` | `model_output` | audio chunk (base64). |
+| `image` | `model_output` | image chunk (base64). |
+| `thought` | `thought` | thinking summary text. |
+| `signature` | `thought` | Opaque signature for thought verification. |
 
 **Status values:** `completed`, `in_progress`, `requires_action`, `failed`, `cancelled`
-
-
-## Key Differences from generateContent
-
-- `startChat()` + manual history → `previous_interaction_id` (server-managed)
-- `sendMessage()` → `interactions.create(previous_interaction_id=...)`
-- `response.text` → `interaction.outputs[-1].text`
-- No background execution → `background=True` for async tasks
-- No agent access → `agent="deep-research-preview-04-2026"` or `agent="deep-research-max-preview-04-2026"`
-
-
-## Important Notes
-
-- Interactions are **stored by default** (`store=true`). Paid tier retains for 55 days, free tier for 1 day.
-- Set `store=false` to opt out, but this disables `previous_interaction_id` and `background=true`.
-- `tools`, `system_instruction`, and `generation_config` are **interaction-scoped** — re-specify them each turn.
-- **Agents require** `background=True`.
-- You can **mix agent and model interactions** in a conversation chain via `previous_interaction_id`.
-
-
-## Documentation Lookup
-
-### When MCP is Installed (Preferred)
-
-If the **`search_docs`** tool (from the Google MCP server) is available, use it as your **only** documentation source:
-
-1. Call `search_docs` with your query
-2. Read the returned documentation
-2. **Trust MCP results** as source of truth for API details — they are always up-to-date.
-
-> [!IMPORTANT]
-> When MCP tools are present, **never** fetch URLs manually. MCP provides up-to-date, indexed documentation that is more accurate and token-efficient than URL fetching.
-
-### When MCP is NOT Installed (Fallback Only)
-
-If no MCP documentation tools are available, fetch from the official docs:
-
-- [Interactions Full Documentation](https://ai.google.dev/gemini-api/docs/interactions.md.txt)
-- [Deep Research Full Documentation](https://ai.google.dev/gemini-api/docs/deep-research.md.txt)
-
-These pages cover function calling, built-in tools (Google Search, code execution, URL context, file search, computer use), remote MCP, structured output, thinking configuration, working with files, multimodal understanding and generation, streaming events, and more.
