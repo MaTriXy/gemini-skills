@@ -177,8 +177,9 @@ for event in client.interactions.create(
     if event.type == "step.delta":
         if event.delta.type == "text":
             print(event.delta.text, end="", flush=True)
-        elif event.delta.type == "thought":
-            print(event.delta.text, end="", flush=True)
+        elif event.delta.type == "thought_summary":
+            summary_text = event.delta.content.get('text', '') if hasattr(event.delta, 'content') else getattr(event.delta, 'text', '')
+            print(summary_text, end="", flush=True)
     elif event.type == "interaction.complete":
         print(f"\n\nTotal Tokens: {event.interaction.usage.total_tokens}")
 ```
@@ -194,8 +195,9 @@ for await (const event of stream) {
     if (event.type === 'step.delta') {
         if (event.delta.type === 'text') {
             process.stdout.write(event.delta.text);
-        } else if (event.delta.type === 'thought') {
-            process.stdout.write(event.delta.text);
+        } else if (event.delta.type === 'thought_summary') {
+            const text = event.delta.content?.text || "";
+            process.stdout.write(text);
         }
     } else if (event.type === 'interaction.complete') {
         console.log(`\n\nTotal Tokens: ${event.interaction.usage.total_tokens}`);
@@ -299,7 +301,7 @@ An `Interaction` response contains `steps`, an array of typed step objects repre
 | `text` | `model_output` | Incremental text token. |
 | `audio` | `model_output` | audio chunk (base64). |
 | `image` | `model_output` | image chunk (base64). |
-| `thought` | `thought` | thinking summary text. |
-| `signature` | `thought` | Opaque signature for thought verification. |
+| `thought_summary` | `thought` | thinking summary text. |
+| `thought_signature` | `thought` | Opaque signature for thought verification. |
 
 **Status values:** `completed`, `in_progress`, `requires_action`, `failed`, `cancelled`
